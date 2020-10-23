@@ -1,0 +1,358 @@
+# Metadata Block
+metadata:
+  title: |
+    Uncontested Divorce Simplified Track - Draft Form 6 Interview 
+  short title: |
+    Uncontested Divorce Interview 
+  description: |
+    This form is intended to guide clients seeking to apply for divorce proceedings under the simplified uncontested hearing track as per s 83 of the Singapore Family Justice Rules 2014. It should generate a draft copy of the Statement of Claim (Form 6) for both the client and the lawyers to refer to. 
+  authors:
+    - name: Brenda Khoo Yu Qing, Chua Su Ann, Claire Tan Su Yin 
+      organization: COR-LAW-2215 Digital Intelligence for Lawyers
+  revision_date: 2020-10-23
+---
+# Related Proceedings Information Collection 
+question: |
+  Related Proceedings
+fields: 
+  - "Do you have any related proceedings to the current divorce proceedings that you are applying for?": related_disputes 
+    datatype: yesnoradio 
+    note: The related proceedings may be with reference to (i) the marriage; (ii) the children of the marriage; (iii) disputes relating to maintainence or property; (iv) bankruptcy.  
+  - "Nature of Proceedings": rp_type
+    choices: 
+      - Marriage 
+      - Children of the Marriage 
+      - Maintenance or Property 
+      - Bankruptcy 
+    show if: related_disputes 
+  - "Case or Suit Number": rp_case_number 
+    hint: In the form, [court forum]/[case type]/[serial no.]/[year]
+    show if: related_disputes
+  - "Date of Application": rp_application_date 
+    datatype: date
+    show if: related_disputes 
+  - "Country where proceedings were filed": rp_country 
+    code: |
+      countries_list()
+    default: Singapore
+    show if: related_disputes
+  - "Details of Order Applied For/Already Made": rp_order_details
+    input type: area
+    note: If the proceedings have ceased, you may provide the official order. Elsewise, please provide the order you have applied for. 
+    show if: related_disputes
+  - "Status of the Proceedings": rp_status 
+    choices: 
+      - Pending 
+      - Determined/Order Given 
+      - Dismissed
+      - Withdrawn
+      - Others
+    show if: related_disputes 
+  - "Please provide details on the status, if relevant.": rp_status_details
+    input type: area 
+    required: false 
+    show if: related_disputes 
+  - "If you are bankrupt, has the OA's sanction been obtained?": rp_bankrupt_sanction 
+    datatype: yesnoradio 
+    show if: related_disputes
+---
+# Grounds of Relief - Introduction Screen
+question: |
+  Grounds on Which Relief is Sought 
+subquestion: | 
+  In uncontested simplified divorce proceedings, the grounds for the divorce are necessarily that the marriage has broken down irretrievably. There are five facts that you can rely on to claim under this ground. Please refer to this document which briefly explains each of the facts. 
+continue button field: read_fact_descriptions 
+# To include the google document with the explanations. 
+---
+# Grounds of Relief - Objects Block
+objects: 
+  - grounds_of_relief: DAList.using(there_are_any=True, object_type=DAObject, complete_attribute='fact')
+---
+# Grounds of Relief - Logic 
+# mandatory: true
+code: |
+  if read_fact_descriptions: 
+    grounds_of_relief.gather()
+--- 
+# Grounds of Relief - Selection of Fact Types 
+code: |
+  fact_types = [
+    'Adultery', 'Unreasonable Behaviour', '2 Years Continuous Desertion', 'Lived Apart for 3 Years', 'Lived Apart for 4 Years']
+---
+# Grounds of Relief - Details of Facts 
+question: |
+  Indicate what is the ${ ordinal(i) } fact you are relying on. 
+fields:
+  - "Fact that you are relying on": grounds_of_relief[i].fact
+    datatype: dropdown
+    code: fact_types
+  - "Please provide some details on why you are relying on the fact.": grounds_of_relief[i].reason 
+    input type: area 
+---
+# Grounds of Relief - Relying on more than One Fact 
+question: |
+  Are there any more facts you would like to rely on?
+yesno: grounds_of_relief.there_is_another
+---
+# Relief Claimed - Logic 
+mandatory: True
+code: |
+  dissolve_marriage_acknowledgement 
+  custody_arrangements
+  carecontrol_arrangements 
+  access_reasonable
+  if matrimonial_home_exists and matrimonial_home_applicant_proportion + matrimonial_home_defendant_proportion != 100: 
+    assets_division_error 
+  else: 
+    other_assets_exist
+    spousal_maintenance_exists 
+    child_maintenance_exists
+    costs_order
+---
+# Relief Claimed - Marriage Dissolved 
+question: |
+  Relief Claimed for the Divorce 
+subquestion: |
+  By default in simplified uncontested divorce proceedings, you are claiming for the marriage to be dissolved in relation to the issue of divorce. 
+continue button field: dissolve_marriage_acknowledgement 
+continue button label: I Agree 
+--- 
+# Relief Claimed - Custody of Children 
+question: |
+  Relief Claimed in relation to the Custody of the Children. 
+# TO CHECK: Either show if has_children or provide NA option for parties with no children to decide custody for. 
+subquestion: |
+  Custody over the children determines who will make the major decisions concerning the children. This may include decisions on education, the religion and the healthcare relating to the child. Where there is sole custody, the custodial parent is the only one who can make this decisions. In contrast, where the parties have decided on a joint custody order, both parents must communciate with one another and reach a consensus as they both have equal say in the upbringing of the child.
+  
+  Please indicate if there will be sole or joint custody of your children.
+# TO CHECK: Objects field to loop question if there is more than one child? 
+fields: 
+  - no label: custody_arrangements 
+    choices: 
+      - Sole Custody
+      - Joint Custody
+  - "Which parent will be granted sole custody?": custodial_parent 
+    choices: 
+      - Applicant Name # TO CHECK: Whether applicant.name here. 
+      - Defendant Name # TO CHECK: Whether defendant.name here. 
+    show if:
+      variable: custody_arrangements
+      is: Sole Custody
+  - "Are there any other details relating to the custody of the children?": custody_details 
+    input type: area 
+    required: False 
+--- 
+# Relief Claimed - Care and Control of Children 
+question: |
+  Relief Claimed in relation to the Care and Control of the Children. 
+# TO CHECK: Either show if has_children or provide NA option for parties with no children to decide care and control for. 
+subquestion: |
+  The care and control over the children relates to which parent will be in charge of the children's day-to-day matters and who the children will live with. The parent without care and control will then be granted access for specific periods. 
+  
+  Please indicate which parent will be given care and control of your children.
+# TO CHECK: Objects field to loop question if there is more than one child?
+fields: 
+  - no label: carecontrol_arrangements
+    choices: 
+      - Applicant Name # TO CHECK: Whether applicant.name here. 
+      - Defendant Name # TO CHECK: Whether defendant.name here. 
+  - "Are there any other details relating to the care and control of the children?": carecontrol_details 
+    input type: area 
+    required: False 
+---
+# Relief Claimed - Access to Children 
+question: |
+  Relief Claimed in relation to the Access to Children 
+# TO CHECK: Either show if has_children or provide NA option for parties with no children to decide care and control for. 
+subquestion: |
+  For the parent who does not have care and control of the children, will he/she be granted reasonable and liberal access to the children of the marriage? 
+fields:
+  - no label: access_reasonable
+    choices: 
+      - Yes
+      - No
+    default: Yes 
+  - "Please include a few details on how you have decided on access.": access_details 
+    input type: area 
+  - note: |
+      We would advice for the parties to have discussed access relating to the following circumstances: (i) Weekends; (ii) School and Public Holidays; (iii) Special Events such as Birthdays; (iv) Overseas Holiday Access.
+---
+# Relief Claimed - Matrimonial Home, Address
+question: |
+  Relief Claimed in relation to the Matrimonial Home 
+subquestion: |
+  The matrimonial home is either acquired by one or both parties during the marriage, used by one or both parties or their children, or acquired before the marriage but substantially improved in quality during the marriage. 
+  
+  There are several ways to deal with the matrimonial home and you may select the one that is the most appropriate for the parties. Please refer to this document for an explanation of the arrangements that are possible. 
+# To include the google document with the explanations.
+fields: 
+  - "Do you have a matrimonial home?": matrimonial_home_exists 
+    datatype: yesnoradio 
+  - Address: matrimonial_home_address
+    show if: matrimonial_home_exists 
+  - Unit: matrimonial_home_unit 
+    required: false 
+    show if: matrimonial_home_exists 
+  - Country: matrimonial_home_country
+    code: |
+      countries_list()
+    default: Singapore
+    show if: matrimonial_home_exists
+  - Postal Code: matrimonial_home_postal_code
+    show if: matrimonial_home_exists
+# TO CHECK: Insert the defaults based on the variable names for the house in which the parties last lived together in using ${ x }. 
+  - "What will be the arrangements?": matrimonial_home_arrangements
+    choices: 
+      - "Sold in the Open Market, Costs and Expenses of Sale Deducted"
+      - "Transferring (other than by way of sale) the Right, Title and Interest in the Flat from One Party to Another" 
+      - "Selling the Right, Title and Interest in the Flat from One Party to Another" 
+      - "Surrendered to the Housing Development Board"
+      - "Others"
+    show if: matrimonial_home_exists 
+  - "Other Methods of Division": matrimonial_home_arrangements 
+    input type: area
+    show if: 
+      variable: matrimonial_home_arrangements 
+      is: "Others"
+  - "What proportion of the proceeds after the abovementioned arrangements will go the applicant?": matrimonial_home_applicant_proportion 
+    datatype: number 
+    min: 0 
+    max: 100
+    show if: matrimonial_home_exists 
+  - "What proportion of the proceeds after the abovementioned arrangements will go to the defendant?": matrimonial_home_defendant_proportion
+    datatype: number 
+    min: 0 
+    max: 100
+    show if: matrimonial_home_exists 
+---
+# Ineligibility Screen, Assets Division Error 
+event: assets_division_error
+question: |
+  There is an error in the division of your assets. 
+subquestion: |
+  Please ensure that the proportion of proceeds inputed for the applicant and the defendant add up to a total of 100%. 
+back button: True 
+---
+# Other Matrimonial Assets 
+question: |
+  Other Matrimonial Assets  
+subquestion: |
+  Should there be any valuable assets that you and the defendant wish to formally divide during the divorce proceedings, please indicate that you have such assets below. Such assets may include any other property. For each asset mentioned, please provide the asset name, a brief description (if applicable), the address it is located at (if applicable) and any other relevant details in the field. 
+fields: 
+  - "Do you have any asset(s), other than the matrimonial property, that you wish to formally divide?": other_assets_exist  
+    datatype: yesnoradio
+  - "Details of Asset(s)": other_assets_details 
+    input type: area 
+    show if: other_assets_exist
+--- 
+# Maintenance for the Wife or Incapacitated Husband 
+question: |
+  Maintenance for the Wife or the Husband 
+subquestion: |
+  Upon separation, one party may have agreed to pay a monthly sum of money to the other party for whatever reason. In this section, you may indicate whether there is an intention for any party to pay spousal maintenance to the other upon divorce. 
+fields: 
+  - "Does any party wish to pay spousal maintenance?": spousal_maintenance_exists 
+    datatype: yesnoradio 
+    default: yes 
+  - "Who is the Paying Party?": spousal_maintenace_payer 
+    choices: 
+      - Applicant Name 
+      - Defendant Name 
+    show if: spousal_maintenance_exists
+  - "Who is the Receiving Party?": spousal_maintenace_receiver 
+    choices: 
+      - Applicant Name 
+      - Defendant Name 
+    show if: spousal_maintenance_exists 
+  - "Type of Maintenance": spousal_maintenance_type 
+    choices: 
+      - Lump-Sum 
+      - Monthly  
+    show if: spousal_maintenance_exists
+  - "Amount": spousal_maintenance_amount 
+    datatype: currency 
+    default: 0 
+    show if: spousal_maintenance_exists
+    note: If spousal maintenance is per month, this amount is the monthly maintenance amount. 
+  - "Start Date": spousal_maintenance_start_date 
+    datatype: date 
+    show if: 
+      variable: spousal_maintenance_type 
+      is: Monthly  
+  - "Monthly Payment Date": spousal_maintenance_payment_date 
+    datatype: integer 
+    min: 1 
+    max: 31 
+    show if: 
+      variable: spousal_maintenance_type 
+      is: Monthly  
+  - "Name of Receiving Bank": spousal_maintenance_bank_name 
+    show if: 
+      variable: spousal_maintenance_type 
+      is: Monthly 
+  - "Receiving Bank Number": spousal_maintenance_bank_number 
+    show if: 
+      variable: spousal_maintenance_type 
+      is: Monthly  
+--- 
+# Maintenance for Children 
+question: |
+  Maintenance for the Children  
+subquestion: |
+  Where there are children, we would also encourage the party with access to contribute to the party in whom the children's care and control has been vested through maintenance. In this section, you may indicate whether there is an intention for the party without care and control to provide for child maintenance upon divorce. 
+fields: 
+  - "Does the party with access wish to pay child maintenance?": child_maintenance_exists 
+    datatype: yesnoradio 
+    default: yes 
+# TO CHECK: Whether can insert the name of the party with access inside. 
+  - "Type of Maintenance": child_maintenance_type 
+    choices: 
+      - Lump-Sum 
+      - Monthly  
+    show if: child_maintenance_exists
+# TO CHECK: Use the objects for individuals to loop the questions for each child. 
+  - "Amount": child_maintenance_amount 
+    datatype: currency 
+    default: 0 
+    show if: child_maintenance_exists
+    note: If the child maintenance is per month, this amount is the monthly maintenance amount. 
+  - "Start Date": child_maintenance_start_date 
+    datatype: date 
+    show if: 
+      variable: child_maintenance_type 
+      is: Monthly  
+  - "End Date": child_maintenance_end_date 
+    datatype: date 
+    required: false 
+    show if: 
+      variable: child_maintenance_type 
+      is: Monthly 
+    note: The parties may want to consider the end date of the maintenance in order to ensure that both parties are on the same page as to when the monthly payments terminate. 
+  - "Monthly Payment Date": child_maintenance_payment_date 
+    datatype: integer 
+    min: 1 
+    max: 31 
+    show if: 
+      variable: child_maintenance_type 
+      is: Monthly  
+  - "Name of Receiving Bank": child_maintenance_bank_name 
+    show if: 
+      variable: child_maintenance_type 
+      is: Monthly 
+  - "Receiving Bank Number": child_maintenance_bank_number 
+    show if: 
+      variable: child_maintenance_type 
+      is: Monthly 
+---
+# Costs Orders 
+question: |
+  Costs 
+subquestion: |
+  As for the costs of the proceedings, the parties should decide on how they would like the costs to be ordered. 
+fields:
+  - "Costs Order": costs_order 
+    choices: 
+      - No Order as to Costs 
+      - Defendant Pays Costs 
+    default: No Order as to Costs 
+--- 
